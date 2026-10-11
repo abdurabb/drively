@@ -13,20 +13,37 @@ type ApiFetchOptions = Omit<RequestInit, "body"> & {
   accessToken?: string;
 };
 
+// function getApiBaseUrl(path: string) {
+//   if (typeof window !== "undefined") {
+//     if (path.startsWith("/auth")) {
+//       return "/api";
+//     }
+//     return process.env.NEXT_PUBLIC_API_URL ?? DEFAULT_API_URL;
+//   }
+
+//   return (
+//     process.env.API_URL ??
+//     process.env.NEXT_PUBLIC_API_URL ??
+//     DEFAULT_API_URL
+//   );
+// }
+
+
 function getApiBaseUrl(path: string) {
   if (typeof window !== "undefined") {
     if (path.startsWith("/auth")) {
       return "/api";
     }
-    return process.env.NEXT_PUBLIC_API_URL ?? DEFAULT_API_URL;
-  }
 
+    return "/api/backend";
+  }
   return (
     process.env.API_URL ??
     process.env.NEXT_PUBLIC_API_URL ??
     DEFAULT_API_URL
   );
 }
+
 
 async function parseBody(response: Response) {
   const text = await response.text();
