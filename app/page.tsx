@@ -172,7 +172,7 @@ export default function HomePage() {
                   </Link>
 
                   <Link
-                    href="/register"
+                    href="/signup"
                     className="rounded-xl bg-[#f5b83d] px-5 py-2.5 text-sm font-bold text-[#071225] shadow-lg shadow-amber-500/10 transition hover:bg-[#ffc95d]"
                   >
                     Get started
