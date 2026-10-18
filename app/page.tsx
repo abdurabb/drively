@@ -18,6 +18,7 @@ import {
   Zap,
 } from "lucide-react";
 import { useState } from "react";
+import { useAuth } from "@/src/hooks/useAuth";
 
 const cars = [
   {
@@ -105,6 +106,7 @@ const categories = [
 
 export default function HomePage() {
   const [mobileMenu, setMobileMenu] = useState(false);
+  const { user, logout } = useAuth();
 
   return (
     <main className="min-h-screen bg-[#f7f8fc] text-[#111827]">
@@ -152,19 +154,31 @@ export default function HomePage() {
 
             {/* Desktop actions */}
             <div className="hidden items-center gap-3 md:flex">
-              <Link
-                href="/login"
-                className="rounded-xl px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-white/10"
-              >
-                Sign in
-              </Link>
+              {user ? (
+                <button
+                  type="button"
+                  onClick={() => logout()}
+                  className="rounded-xl px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-white/10"
+                >
+                  Sign out
+                </button>
+              ) : (
+                <>
+                  <Link
+                    href="/login"
+                    className="rounded-xl px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-white/10"
+                  >
+                    Sign in
+                  </Link>
 
-              <Link
-                href="/register"
-                className="rounded-xl bg-[#f5b83d] px-5 py-2.5 text-sm font-bold text-[#071225] shadow-lg shadow-amber-500/10 transition hover:bg-[#ffc95d]"
-              >
-                Get started
-              </Link>
+                  <Link
+                    href="/register"
+                    className="rounded-xl bg-[#f5b83d] px-5 py-2.5 text-sm font-bold text-[#071225] shadow-lg shadow-amber-500/10 transition hover:bg-[#ffc95d]"
+                  >
+                    Get started
+                  </Link>
+                </>
+              )}
             </div>
 
             {/* Mobile menu button */}
@@ -215,18 +229,33 @@ export default function HomePage() {
                 </a>
 
                 <div className="mt-2 border-t border-white/10 pt-3">
-                  <Link
-                    href="/login"
-                    className="block rounded-lg px-4 py-3 text-sm font-semibold text-white"
-                  >
-                    Sign in
-                  </Link>
-                  <Link
-                    href="/register"
-                    className="mt-1 block rounded-xl bg-[#f5b83d] px-4 py-3 text-center text-sm font-bold text-[#071225]"
-                  >
-                    Get started
-                  </Link>
+                  {user ? (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setMobileMenu(false);
+                        logout();
+                      }}
+                      className="block w-full rounded-lg px-4 py-3 text-left text-sm font-semibold text-white"
+                    >
+                      Sign out
+                    </button>
+                  ) : (
+                    <>
+                      <Link
+                        href="/login"
+                        className="block rounded-lg px-4 py-3 text-sm font-semibold text-white"
+                      >
+                        Sign in
+                      </Link>
+                      <Link
+                        href="/register"
+                        className="mt-1 block rounded-xl bg-[#f5b83d] px-4 py-3 text-center text-sm font-bold text-[#071225]"
+                      >
+                        Get started
+                      </Link>
+                    </>
+                  )}
                 </div>
               </div>
             </div>
