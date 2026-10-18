@@ -7,6 +7,7 @@ export class ApiError extends Error {
   readonly code?: string;
   readonly errors: string[];
   readonly fields: FieldErrors;
+  readonly data?: Record<string, unknown>;
 
   constructor({
     message,
@@ -14,12 +15,14 @@ export class ApiError extends Error {
     code,
     errors = [],
     fields = {},
+    data,
   }: {
     message: string;
     status: number;
     code?: string;
     errors?: string[];
     fields?: FieldErrors;
+    data?: Record<string, unknown>;
   }) {
     super(message);
     this.name = "ApiError";
@@ -27,6 +30,7 @@ export class ApiError extends Error {
     this.code = code;
     this.errors = errors;
     this.fields = fields;
+    this.data = data;
   }
 }
 
@@ -69,6 +73,8 @@ export function createApiError(
     code: payload.code,
     errors,
     fields: mapJoiErrors(errors),
+    data:
+      payload.data && typeof payload.data === "object" ? payload.data : undefined,
   });
 }
 

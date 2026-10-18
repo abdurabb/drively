@@ -1,32 +1,23 @@
 "use client";
 
-import { useState, useRef, useEffect, type FormEvent, type KeyboardEvent, type ClipboardEvent } from "react";
-import { Mail, Phone, ArrowLeft, RotateCw, CheckCircle2 } from "lucide-react";
+import { useState, type FormEvent } from "react";
+import { Mail, Phone, RotateCw } from "lucide-react";
+import { isValidPhone, normalizePhone } from "@/src/lib/otp";
 
 export type RequestOtpPayload =
   | {
-      loginType: "otp";
       otpType: "email";
       email: string;
     }
   | {
-      loginType: "otp";
       otpType: "phone";
       phone: string;
     };
-
-export type VerifyOtpPayload = {
-  loginType: "otp";
-  otpType: "email" | "phone";
-  destination: string;
-  code: string;
-};
 
 export type LoginOptionsProps = {
   onGoogleLogin?: () => void;
   onFacebookLogin?: () => void;
   onRequestOtp: (payload: RequestOtpPayload) => Promise<{ success: boolean; message?: string } | void>;
-  onVerifyOtp?: (payload: VerifyOtpPayload) => Promise<{ success: boolean; message?: string } | void>;
   showSocial?: boolean;
 };
 
@@ -90,34 +81,16 @@ export function LoginOptions({
   onGoogleLogin,
   onFacebookLogin,
   onRequestOtp,
-  onVerifyOtp,
   showSocial = false,
 }: LoginOptionsProps) {
-  const [step, setStep] = useState<"request" | "verify">("request");
   const [otpType, setOtpType] = useState<OtpType>("phone");
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
-  const [countdown, setCountdown] = useState(0);
 
-  // 6-digit OTP state
-  const [otpDigits, setOtpDigits] = useState<string[]>(["", "", "", "", "", ""]);
-  const inputRefs = useRef<(HTMLInputElement | null)[]>([]);
-
-  // Timer countdown effect
-  useEffect(() => {
-    if (countdown <= 0) return;
-    const interval = setInterval(() => {
-      setCountdown((prev) => prev - 1);
-    }, 1000);
-    return () => clearInterval(interval);
-  }, [countdown]);
-
-  const activeDestination = otpType === "email" ? email.trim() : phone.trim();
-
-  async function handleSendOtp(event?: FormEvent) {
-    if (event) event.preventDefault();
+  async function handleSendOtp(event: FormEvent) {
+    event.preventDefault();
     setError("");
 
     let payload: RequestOtpPayload;
@@ -132,93 +105,30 @@ export function LoginOptions({
         setError("Please enter a valid email address.");
         return;
       }
-      payload = { loginType: "otp", otpType: "email", email: normalizedEmail };
+      payload = { otpType: "email", email: normalizedEmail };
     } else {
       const normalizedPhone = phone.trim();
       if (!normalizedPhone) {
         setError("Please enter your mobile number.");
         return;
       }
-      if (!/^\+?[1-9]\d{6,14}$/.test(normalizedPhone.replace(/\s+/g, ""))) {
-        setError("Enter a valid phone number with country code, e.g. +971 50 123 4567");
+      if (!isValidPhone(normalizedPhone)) {
+        setError("Enter a valid phone number with country code, e.g. +971501234567");
         return;
       }
-      payload = { loginType: "otp", otpType: "phone", phone: normalizedPhone };
+      payload = { otpType: "phone", phone: normalizePhone(normalizedPhone) };
     }
 
     setLoading(true);
 
     try {
       await onRequestOtp(payload);
-      setStep("verify");
-      setCountdown(45);
-      setOtpDigits(["", "", "", "", "", ""]);
-      setTimeout(() => inputRefs.current[0]?.focus(), 100);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to send verification code. Please try again.");
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  function handleOtpDigitChange(index: number, value: string) {
-    const digit = value.replace(/\D/g, "").slice(-1);
-    const newDigits = [...otpDigits];
-    newDigits[index] = digit;
-    setOtpDigits(newDigits);
-    setError("");
-
-    if (digit && index < 5) {
-      inputRefs.current[index + 1]?.focus();
-    }
-  }
-
-  function handleOtpKeyDown(index: number, e: KeyboardEvent<HTMLInputElement>) {
-    if (e.key === "Backspace" && !otpDigits[index] && index > 0) {
-      inputRefs.current[index - 1]?.focus();
-    }
-  }
-
-  function handleOtpPaste(e: ClipboardEvent<HTMLInputElement>) {
-    e.preventDefault();
-    const pasted = e.clipboardData.getData("text").replace(/\D/g, "").slice(0, 6);
-    if (!pasted) return;
-
-    const newDigits = [...otpDigits];
-    for (let i = 0; i < 6; i++) {
-      newDigits[i] = pasted[i] || "";
-    }
-    setOtpDigits(newDigits);
-    setError("");
-
-    const nextIndex = Math.min(pasted.length, 5);
-    inputRefs.current[nextIndex]?.focus();
-  }
-
-  async function handleVerifySubmit(event: FormEvent) {
-    event.preventDefault();
-    setError("");
-
-    const code = otpDigits.join("");
-    if (code.length !== 6) {
-      setError("Please enter the complete 6-digit verification code.");
-      return;
-    }
-
-    setLoading(true);
-    try {
-      if (onVerifyOtp) {
-        await onVerifyOtp({
-          loginType: "otp",
-          otpType,
-          destination: activeDestination,
-          code,
-        });
-      } else {
-        setError("OTP verification handler is not configured.");
-      }
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Invalid code. Please try again.");
+      setError(
+        err instanceof Error
+          ? err.message
+          : "Failed to send verification code. Please try again.",
+      );
     } finally {
       setLoading(false);
     }
@@ -240,8 +150,7 @@ export function LoginOptions({
         </>
       )}
 
-      {step === "request" ? (
-        <form onSubmit={handleSendOtp} className="space-y-4" noValidate>
+      <form onSubmit={handleSendOtp} className="space-y-4" noValidate>
           {/* Channel Selector: Phone or Email */}
           <div className="flex rounded-xl bg-gray-100/90 p-1">
             <button
@@ -350,103 +259,6 @@ export function LoginOptions({
             )}
           </button>
         </form>
-      ) : (
-        /* Step 2: 6-digit Verification */
-        <form onSubmit={handleVerifySubmit} className="space-y-4" noValidate>
-          <div className="flex items-center justify-between">
-            <button
-              type="button"
-              onClick={() => {
-                setStep("request");
-                setError("");
-              }}
-              className="inline-flex items-center gap-1.5 text-xs font-medium text-gray-600 hover:text-gray-900 transition"
-            >
-              <ArrowLeft className="h-3.5 w-3.5" />
-              Edit {otpType === "email" ? "Email" : "Phone"}
-            </button>
-            <span className="text-[11px] font-medium text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-md px-2 py-0.5 inline-flex items-center gap-1">
-              <CheckCircle2 className="h-3 w-3" /> Code Sent
-            </span>
-          </div>
-
-          <div className="rounded-xl border border-gray-100 bg-gray-50/70 p-3 text-center">
-            <p className="text-xs text-gray-600">
-              Enter the 6-digit verification code sent to
-            </p>
-            <p className="mt-0.5 text-xs font-semibold text-[#0b1220] truncate">
-              {activeDestination}
-            </p>
-          </div>
-
-          {/* 6 Discrete Digit Inputs */}
-          <div className="flex items-center justify-between gap-1.5 sm:gap-2">
-            {otpDigits.map((digit, idx) => (
-              <input
-                key={idx}
-                ref={(el) => {
-                  inputRefs.current[idx] = el;
-                }}
-                type="text"
-                inputMode="numeric"
-                pattern="[0-9]*"
-                maxLength={1}
-                value={digit}
-                onChange={(e) => handleOtpDigitChange(idx, e.target.value)}
-                onKeyDown={(e) => handleOtpKeyDown(idx, e)}
-                onPaste={idx === 0 ? handleOtpPaste : undefined}
-                className="h-12 w-11 sm:h-12 sm:w-12 rounded-xl border border-gray-200 bg-white text-center text-lg font-bold text-gray-900 shadow-xs outline-none transition focus:border-[#f5b544] focus:ring-4 focus:ring-[#f5b544]/15"
-              />
-            ))}
-          </div>
-
-          {error && (
-            <div className="rounded-lg border border-red-200 bg-red-50 p-2.5 text-xs text-red-700 text-center">
-              {error}
-            </div>
-          )}
-
-          <div className="flex items-center justify-between text-xs text-gray-500">
-            {countdown > 0 ? (
-              <span>Resend code in <strong className="text-gray-800">{countdown}s</strong></span>
-            ) : (
-              <button
-                type="button"
-                onClick={() => handleSendOtp()}
-                disabled={loading}
-                className="font-semibold text-[#c58a16] hover:text-[#a9720e] transition"
-              >
-                Resend code now
-              </button>
-            )}
-            <button
-              type="button"
-              onClick={() => {
-                setStep("request");
-                setError("");
-              }}
-              className="text-gray-500 hover:text-gray-800 transition"
-            >
-              Didn&apos;t get code?
-            </button>
-          </div>
-
-          <button
-            type="submit"
-            disabled={loading || otpDigits.join("").length !== 6}
-            className="flex h-11 w-full items-center justify-center gap-2 rounded-xl bg-[#0b1220] px-4 text-sm font-semibold text-white shadow-md shadow-[#0b1220]/10 transition hover:bg-[#16233a] active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-60"
-          >
-            {loading ? (
-              <>
-                <RotateCw className="h-4 w-4 animate-spin" />
-                Verifying...
-              </>
-            ) : (
-              "Verify & Sign In"
-            )}
-          </button>
-        </form>
-      )}
     </div>
   );
 }

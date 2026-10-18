@@ -6,6 +6,12 @@ import { FormEvent, useState, useEffect } from "react";
 import { getErrorMessage, isApiError } from "@/src/lib/apiError";
 import { useRegister } from "@/src/hooks/useRegister";
 import { useAppSelector } from "@/src/redux/hooks";
+import {
+  buildVerifyOtpPath,
+  isValidPhone,
+  normalizePhone,
+  savePendingVerification,
+} from "@/src/lib/otp";
 import type { FieldErrors } from "@/src/types/apiError";
 
 const inputClassName =
@@ -60,8 +66,8 @@ export function SignupForm() {
     // Phone validation
     if (!phone) {
       errors.phone = "Phone number is required.";
-    } else if (!/^[+]?[0-9\s()-]{7,20}$/.test(phone)) {
-      errors.phone = "Please enter a valid phone number.";
+    } else if (!isValidPhone(phone)) {
+      errors.phone = "Enter a valid phone number with country code, e.g. +971501234567";
     }
 
     // Password validation
@@ -95,17 +101,31 @@ export function SignupForm() {
       return;
     }
 
+    const email = String(form.get("email") ?? "").trim();
+    const phone = normalizePhone(String(form.get("phone") ?? "").trim());
+
     register.mutate(
       {
         name: String(form.get("name") ?? "").trim(),
-        email: String(form.get("email") ?? "").trim(),
-        phone: String(form.get("phone") ?? "").trim(),
+        email,
+        phone,
         password: String(form.get("password") ?? ""),
         role: "customer",
       },
       {
         onSuccess: () => {
-          router.push("/login?registered=1");
+          savePendingVerification({
+            email,
+            phone,
+            pending: ["email", "phone"],
+          });
+          router.push(
+            buildVerifyOtpPath({
+              email,
+              phone,
+              pending: ["email", "phone"],
+            }),
+          );
         },
 
         onError: (error) => {
@@ -129,7 +149,7 @@ export function SignupForm() {
         </h2>
 
         <p className="mt-2 text-gray-500">
-          Join Drively and start your journey.
+          Join Drively and start your journey. You&apos;ll verify both email and phone next.
         </p>
       </div>
 

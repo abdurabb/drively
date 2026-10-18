@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { ACCESS_TOKEN_COOKIE } from "@/src/lib/authSession";
 
-const AUTH_PAGES = ["/login", "/signup", "/forgot-password"];
+const AUTH_PAGES = ["/login", "/signup", "/forgot-password", "/verify-otp"];
 const PROTECTED_PREFIXES = ["/dashboard", "/bookings", "/profile", "/admin"];
 
 export function proxy(request: NextRequest) {

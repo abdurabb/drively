@@ -3,6 +3,7 @@ export type ApiErrorBody = {
   message?: string;
   code?: string;
   errors?: string[];
+  data?: Record<string, unknown>;
 };
 
 export type FieldErrors = Record<string, string>;

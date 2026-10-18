@@ -96,12 +96,6 @@ export default function SignupPage() {
 
             <SignupForm />
 
-            <div className="my-6 flex items-center gap-4">
-              <div className="h-px flex-1 bg-gray-200" />
-              <span className="text-xs text-gray-400">OR</span>
-              <div className="h-px flex-1 bg-gray-200" />
-            </div>
-
             <p className="mt-7 text-center text-sm text-gray-500">
               Already have an account?{" "}
               <Link

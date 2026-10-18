@@ -5,6 +5,11 @@ import type {
   RefreshResponse,
   RegisterInput,
   RegisterResponse,
+  SendOtpInput,
+  SendOtpResponse,
+  VerifyOtpAuthResponse,
+  VerifyOtpInput,
+  VerifyOtpResponse,
 } from "@/src/types/auth";
 
 export function registerUser(input: RegisterInput) {
@@ -39,5 +44,33 @@ export function refreshAccessToken() {
     auth: false,
     retryOnAuthError: false,
   });
+}
+
+export function sendOtp(input: SendOtpInput) {
+  return apiFetch<SendOtpResponse>("/auth/send-otp", {
+    method: "POST",
+    body: input,
+    auth: false,
+    retryOnAuthError: false,
+  });
+}
+
+export function verifyOtp(input: VerifyOtpInput) {
+  return apiFetch<VerifyOtpResponse>("/auth/verify-otp", {
+    method: "POST",
+    body: input,
+    auth: false,
+    retryOnAuthError: false,
+  });
+}
+
+export function isVerifyOtpAuthResponse(
+  response: VerifyOtpResponse,
+): response is VerifyOtpAuthResponse {
+  return Boolean(
+    response?.data &&
+      "accessToken" in response.data &&
+      typeof response.data.accessToken === "string",
+  );
 }
 

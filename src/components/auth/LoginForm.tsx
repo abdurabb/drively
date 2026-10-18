@@ -8,8 +8,14 @@ import { getErrorMessage, isApiError } from "@/src/lib/apiError";
 import { useLogin } from "@/src/hooks/useLogin";
 import { useAppDispatch, useAppSelector } from "@/src/redux/hooks";
 import { setCredentials } from "@/src/redux/slices/authSlice";
+import {
+  buildVerifyOtpPath,
+  pendingChannelsFromFlags,
+  savePendingVerification,
+  unverifiedChannelFromMessage,
+  type OtpType,
+} from "@/src/lib/otp";
 import type { FieldErrors } from "@/src/types/apiError";
-import { SocialLoginButtons } from "./LoginOptions";
 import { LoginOptionsContainer } from "./LoginOptionsContainer";
 
 export function LoginForm({ registered }: { registered?: string }) {
@@ -28,7 +34,6 @@ export function LoginForm({ registered }: { registered?: string }) {
   // Validation & Server feedback
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
   const [formError, setFormError] = useState<string | null>(null);
-  const [socialFeedback, setSocialFeedback] = useState<string | null>(null);
 
   // If already authenticated on client, redirect immediately
   useEffect(() => {
@@ -64,7 +69,6 @@ export function LoginForm({ registered }: { registered?: string }) {
     event.preventDefault();
 
     setFormError(null);
-    setSocialFeedback(null);
     setFieldErrors({});
 
     const form = new FormData(event.currentTarget);
@@ -98,10 +102,55 @@ export function LoginForm({ registered }: { registered?: string }) {
           }
         },
         onError: (error) => {
+          const message = getErrorMessage(error);
+          const unverified = unverifiedChannelFromMessage(message);
+
+          if (unverified) {
+            const account =
+              isApiError(error) && error.data
+                ? {
+                    email:
+                      typeof error.data.email === "string" ? error.data.email : undefined,
+                    phone:
+                      typeof error.data.phone === "string" ? error.data.phone : undefined,
+                    isEmailVerified:
+                      typeof error.data.isEmailVerified === "boolean"
+                        ? error.data.isEmailVerified
+                        : undefined,
+                    isPhoneVerified:
+                      typeof error.data.isPhoneVerified === "boolean"
+                        ? error.data.isPhoneVerified
+                        : undefined,
+                  }
+                : null;
+            const pending: OtpType[] = account
+              ? pendingChannelsFromFlags(account, unverified)
+              : unverified === "email"
+                ? ["email", "phone"]
+                : ["phone"];
+            const nextEmail = account?.email || email;
+            const nextPhone = account?.phone;
+            savePendingVerification({
+              email: nextEmail,
+              phone: nextPhone,
+              pending,
+              flow: "account",
+            });
+            router.push(
+              buildVerifyOtpPath({
+                email: nextEmail,
+                phone: nextPhone,
+                pending,
+                flow: "account",
+              }),
+            );
+            return;
+          }
+
           if (isApiError(error) && Object.keys(error.fields).length > 0) {
             setFieldErrors(error.fields);
           }
-          setFormError(getErrorMessage(error));
+          setFormError(message);
         },
       }
     );
@@ -126,8 +175,10 @@ export function LoginForm({ registered }: { registered?: string }) {
         <div className="mb-5 flex items-start gap-3 rounded-xl border border-emerald-200 bg-emerald-50/90 p-3.5 text-xs text-emerald-800">
           <CheckCircle2 className="h-4 w-4 shrink-0 text-emerald-600 mt-0.5" />
           <div>
-            <p className="font-semibold text-emerald-900">Account created successfully</p>
-            <p className="text-emerald-700">Please sign in with your credentials to continue.</p>
+            <p className="font-semibold text-emerald-900">Account created</p>
+            <p className="text-emerald-700">
+              Verify your email and phone, then sign in to continue.
+            </p>
           </div>
         </div>
       ) : null}
@@ -142,37 +193,6 @@ export function LoginForm({ registered }: { registered?: string }) {
           <span>{formError}</span>
         </div>
       ) : null}
-
-      {/* Social Feedback Banner */}
-      {socialFeedback ? (
-        <div className="mb-5 rounded-xl border border-blue-200 bg-blue-50/80 p-3 text-xs text-blue-800">
-          {socialFeedback}
-        </div>
-      ) : null}
-
-      {/* Quick 1-Click Social Sign-in */}
-      <div className="mb-5">
-        <SocialLoginButtons
-          onGoogleLogin={() => {
-            setFormError(null);
-            setSocialFeedback("Redirecting to Google OAuth... (Connecting production domain)");
-          }}
-          onFacebookLogin={() => {
-            setFormError(null);
-            setSocialFeedback("Redirecting to Facebook OAuth... (Connecting production domain)");
-          }}
-        />
-      </div>
-
-      {/* Subtle Divider */}
-      <div className="relative mb-5 flex items-center justify-center">
-        <div className="absolute inset-0 flex items-center">
-          <div className="w-full border-t border-gray-200" />
-        </div>
-        <span className="relative bg-[#f5f7fa] lg:bg-white px-3 text-[11px] font-medium uppercase tracking-wider text-gray-400">
-          or sign in with
-        </span>
-      </div>
 
       {/* Segmented Mode Selector: Password vs OTP */}
       <div className="mb-5 grid grid-cols-2 rounded-xl bg-gray-100 p-1">
