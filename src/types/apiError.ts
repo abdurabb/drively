@@ -2,7 +2,7 @@ export type ApiErrorBody = {
   success?: boolean;
   message?: string;
   code?: string;
-  errors?: string[];
+  errors?: unknown[];
   data?: Record<string, unknown>;
 };
 

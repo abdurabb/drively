@@ -60,6 +60,41 @@ export function Navbar({ variant = "light" }: NavbarProps) {
           >
             Companies
           </Link>
+          {user?.role === "vendor" ? (
+            <Link
+              href="/vendor/bookings"
+              className={`text-sm font-medium transition ${
+                isDark
+                  ? "text-gray-300 hover:text-white"
+                  : "text-gray-600 hover:text-[#071225]"
+              }`}
+            >
+              Vendor panel
+            </Link>
+          ) : (
+            <Link
+              href="/bookings"
+              className={`text-sm font-medium transition ${
+                isDark
+                  ? "text-gray-300 hover:text-white"
+                  : "text-gray-600 hover:text-[#071225]"
+              }`}
+            >
+              My bookings
+            </Link>
+          )}
+          {user?.role === "customer" || user?.role === "vendor" ? (
+            <Link
+              href="/reviews"
+              className={`text-sm font-medium transition ${
+                isDark
+                  ? "text-gray-300 hover:text-white"
+                  : "text-gray-600 hover:text-[#071225]"
+              }`}
+            >
+              My reviews
+            </Link>
+          ) : null}
           <Link
             href="/#how-it-works"
             className={`text-sm font-medium transition ${
@@ -166,6 +201,32 @@ export function Navbar({ variant = "light" }: NavbarProps) {
             >
               Companies
             </Link>
+            {user?.role === "vendor" ? (
+              <Link
+                href="/vendor/bookings"
+                onClick={() => setMobileOpen(false)}
+                className="rounded-lg px-4 py-2.5 text-sm font-medium hover:bg-gray-500/10"
+              >
+                Vendor panel
+              </Link>
+            ) : (
+              <Link
+                href="/bookings"
+                onClick={() => setMobileOpen(false)}
+                className="rounded-lg px-4 py-2.5 text-sm font-medium hover:bg-gray-500/10"
+              >
+                My bookings
+              </Link>
+            )}
+            {user?.role === "customer" || user?.role === "vendor" ? (
+              <Link
+                href="/reviews"
+                onClick={() => setMobileOpen(false)}
+                className="rounded-lg px-4 py-2.5 text-sm font-medium hover:bg-gray-500/10"
+              >
+                My reviews
+              </Link>
+            ) : null}
             <Link
               href="/#how-it-works"
               onClick={() => setMobileOpen(false)}

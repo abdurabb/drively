@@ -4,8 +4,8 @@ import {
   getServerCookieHeader,
 } from "@/src/lib/authSession";
 
-// const DEFAULT_API_URL = "http://localhost:4000/api";
-const DEFAULT_API_URL = "http://13.61.133.143/api";
+const DEFAULT_API_URL = "http://localhost:4000/api";
+// const DEFAULT_API_URL = "http://13.61.133.143/api";
 
 type ApiFetchOptions = Omit<RequestInit, "body"> & {
   body?: unknown;

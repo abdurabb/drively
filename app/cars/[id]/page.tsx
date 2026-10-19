@@ -2,6 +2,7 @@
 
 import { use } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import {
   ArrowLeft,
   Calendar,
@@ -18,6 +19,8 @@ import {
   Users,
 } from "lucide-react";
 import { Navbar } from "@/src/components/common/Navbar";
+import { ReviewList } from "@/src/components/reviews/ReviewList";
+import { useAuth } from "@/src/hooks/useAuth";
 import { useVehicle } from "@/src/hooks/useVehicles";
 import { useCompany } from "@/src/hooks/useCompanies";
 import { useState } from "react";
@@ -30,8 +33,11 @@ export default function VehicleDetailPage({
 }: {
   params: Promise<{ id: string }>;
 }) {
+  const router = useRouter();
+  const { isAuthenticated, user } = useAuth();
   const resolvedParams = use(params);
   const vehicleId = resolvedParams.id;
+  const [bookNotice, setBookNotice] = useState<string | null>(null);
 
   const { data, isLoading, error } = useVehicle(vehicleId);
   const vehicle = data?.data;
@@ -92,6 +98,28 @@ export default function VehicleDetailPage({
       : [FALLBACK_CAR_IMAGE];
 
   const currentDisplayImage = imgSrc || images[activeImageIndex] || FALLBACK_CAR_IMAGE;
+  const canBook = vehicle.status === "available";
+  const bookableVehicleId = vehicle._id;
+
+  function handleProceed() {
+    if (!canBook) {
+      return;
+    }
+
+    const next = `/bookings/new?vehicleId=${bookableVehicleId}`;
+
+    if (!isAuthenticated) {
+      router.push(`/login?redirect=${encodeURIComponent(next)}`);
+      return;
+    }
+
+    if (user?.role !== "customer") {
+      setBookNotice("Bookings are available for customer accounts.");
+      return;
+    }
+
+    router.push(next);
+  }
 
   return (
     <div className="min-h-screen bg-[#f7f8fc] text-[#111827]">
@@ -134,9 +162,11 @@ export default function VehicleDetailPage({
               <div className="flex items-center gap-1 text-xs font-medium text-gray-600">
                 <Star className="h-3.5 w-3.5 fill-[#f5b544] text-[#f5b544]" />
                 <span className="font-bold text-gray-900">
-                  {vehicle.ratingAverage || "5.0"}
+                  {(vehicle.ratingAverage ?? 0).toFixed(1)}
                 </span>
-                <span>({vehicle.ratingCount || 1} reviews)</span>
+                <Link href="#reviews" className="hover:text-gray-900">
+                  ({vehicle.ratingCount ?? 0} reviews)
+                </Link>
               </div>
             </div>
 
@@ -329,6 +359,13 @@ export default function VehicleDetailPage({
                 </div>
               )}
             </div>
+
+            <ReviewList
+              targetType="vehicle"
+              targetId={vehicle._id}
+              title="Vehicle reviews"
+              emptyText="Reviews appear here after a completed rental."
+            />
           </div>
 
           {/* Right Sidebar - Pricing & Rental Company */}
@@ -369,10 +406,20 @@ export default function VehicleDetailPage({
 
               <button
                 type="button"
-                className="mt-6 w-full rounded-xl bg-[#0b1220] py-3.5 text-sm font-bold text-white shadow-lg shadow-black/10 transition hover:bg-[#19263e]"
+                disabled={!canBook}
+                onClick={handleProceed}
+                className="mt-6 w-full rounded-xl bg-[#0b1220] py-3.5 text-sm font-bold text-white shadow-lg shadow-black/10 transition hover:bg-[#19263e] disabled:cursor-not-allowed disabled:bg-gray-300 disabled:text-gray-500 disabled:shadow-none"
               >
-                Proceed to Book
+                {canBook ? "Proceed to Book" : "Currently unavailable"}
               </button>
+              <p className="mt-3 text-center text-[11px] leading-relaxed text-gray-400">
+                The request stays pending until the company confirms the car. Payment opens after that.
+              </p>
+              {bookNotice ? (
+                <p className="mt-2 text-center text-xs font-medium text-red-600">
+                  {bookNotice}
+                </p>
+              ) : null}
 
               {/* Company Info Box */}
               {company && (

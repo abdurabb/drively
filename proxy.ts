@@ -3,7 +3,14 @@ import type { NextRequest } from "next/server";
 import { ACCESS_TOKEN_COOKIE } from "@/src/lib/authSession";
 
 const AUTH_PAGES = ["/login", "/signup", "/forgot-password", "/verify-otp"];
-const PROTECTED_PREFIXES = ["/dashboard", "/bookings", "/profile", "/admin"];
+const PROTECTED_PREFIXES = [
+  "/dashboard",
+  "/bookings",
+  "/profile",
+  "/admin",
+  "/reviews",
+  "/vendor",
+];
 
 export function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
@@ -27,7 +34,10 @@ export function proxy(request: NextRequest) {
     )
   ) {
     const loginUrl = new URL("/login", request.url);
-    loginUrl.searchParams.set("redirect", pathname);
+    loginUrl.searchParams.set(
+      "redirect",
+      `${pathname}${request.nextUrl.search}`,
+    );
     return NextResponse.redirect(loginUrl);
   }
 

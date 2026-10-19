@@ -54,6 +54,23 @@ function mapJoiErrors(errors: string[]): FieldErrors {
   return fields;
 }
 
+function readIssue(issue: unknown) {
+  if (typeof issue === "string") {
+    return { text: issue, field: undefined as string | undefined };
+  }
+
+  if (!issue || typeof issue !== "object") {
+    return { text: "", field: undefined as string | undefined };
+  }
+
+  const record = issue as { field?: unknown; message?: unknown };
+
+  return {
+    text: typeof record.message === "string" ? record.message : "",
+    field: typeof record.field === "string" ? record.field : undefined,
+  };
+}
+
 export function createApiError(
   status: number,
   body: unknown,
@@ -64,15 +81,38 @@ export function createApiError(
   }
 
   const payload = body as ApiErrorBody;
-  const errors = Array.isArray(payload.errors) ? payload.errors : [];
-  const message = payload.message || errors[0] || fallback;
+  const rawErrors = Array.isArray(payload.errors) ? payload.errors : [];
+  const stringIssues = rawErrors.filter(
+    (issue): issue is string => typeof issue === "string",
+  );
+  const fields = mapJoiErrors(stringIssues);
+  const errors: string[] = [];
+
+  for (const issue of rawErrors) {
+    const parsed = readIssue(issue);
+
+    if (!parsed.text) {
+      continue;
+    }
+
+    errors.push(parsed.field ? `${parsed.field}: ${parsed.text}` : parsed.text);
+
+    if (parsed.field && !fields[parsed.field]) {
+      fields[parsed.field] = parsed.text;
+    }
+  }
+
+  const message =
+    (typeof payload.message === "string" && payload.message) ||
+    errors[0] ||
+    fallback;
 
   return new ApiError({
     message,
     status,
     code: payload.code,
     errors,
-    fields: mapJoiErrors(errors),
+    fields,
     data:
       payload.data && typeof payload.data === "object" ? payload.data : undefined,
   });

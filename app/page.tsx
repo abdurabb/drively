@@ -17,65 +17,22 @@ import {
   X,
   Zap,
 } from "lucide-react";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useAuth } from "@/src/hooks/useAuth";
+import { useCompanies } from "@/src/hooks/useCompanies";
+import { useVehicles } from "@/src/hooks/useVehicles";
+import {
+  applyImageFallback,
+  COMPANY_FALLBACK_IMAGES,
+  resolveEntityImage,
+  VEHICLE_FALLBACK_IMAGES,
+} from "@/src/lib/fallbackImages";
 
-const cars = [
-  {
-    name: "BMW 5 Series",
-    type: "Luxury Sedan",
-    image:
-      "https://images.unsplash.com/photo-1555215695-3004980ad54e?auto=format&fit=crop&w=1000&q=85",
-    price: "AED 280",
-    rating: "4.9",
-    specs: "Automatic • 5 Seats • Petrol",
-    company: "Premium Drive",
-  },
-  {
-    name: "Mercedes-Benz C-Class",
-    type: "Luxury Sedan",
-    image:
-      "https://images.unsplash.com/photo-1618843479313-40f8afb4b4d8?auto=format&fit=crop&w=1000&q=85",
-    price: "AED 320",
-    rating: "4.8",
-    specs: "Automatic • 5 Seats • Petrol",
-    company: "Elite Rentals",
-  },
-  {
-    name: "Range Rover Evoque",
-    type: "Premium SUV",
-    image:
-      "https://images.unsplash.com/photo-1606664515524-ed2f786a0bd6?auto=format&fit=crop&w=1000&q=85",
-    price: "AED 490",
-    rating: "4.9",
-    specs: "Automatic • 5 Seats • Hybrid",
-    company: "Drive Luxe",
-  },
-];
-
-const companies = [
-  {
-    name: "Premium Drive",
-    cars: "120+ vehicles",
-    rating: "4.9",
-    initials: "PD",
-    color: "bg-amber-100 text-amber-700",
-  },
-  {
-    name: "Elite Rentals",
-    cars: "85+ vehicles",
-    rating: "4.8",
-    initials: "ER",
-    color: "bg-blue-100 text-blue-700",
-  },
-  {
-    name: "Drive Luxe",
-    cars: "200+ vehicles",
-    rating: "4.9",
-    initials: "DL",
-    color: "bg-slate-200 text-slate-700",
-  },
-];
+function formatLabel(value: string) {
+  return value
+    .replace(/-/g, " ")
+    .replace(/\b\w/g, (character) => character.toUpperCase());
+}
 
 const categories = [
   {
@@ -107,6 +64,33 @@ const categories = [
 export default function HomePage() {
   const [mobileMenu, setMobileMenu] = useState(false);
   const { user, logout } = useAuth();
+  const {
+    data: vehiclesResponse,
+    isLoading: isVehiclesLoading,
+    isError: isVehiclesError,
+  } = useVehicles({
+    sortBy: "createdAt",
+    sortOrder: "desc",
+    page: 1,
+    limit: 6,
+  });
+  const {
+    data: companiesResponse,
+    isLoading: isCompaniesLoading,
+    isError: isCompaniesError,
+  } = useCompanies({
+    sortBy: "createdAt",
+    sortOrder: "desc",
+    page: 1,
+    limit: 6,
+  });
+
+  const vehicles = vehiclesResponse?.data?.data ?? [];
+  const companies = companiesResponse?.data?.data ?? [];
+  const companyNameById = useMemo(
+    () => new Map(companies.map((company) => [company._id, company.name])),
+    [companies],
+  );
 
   return (
     <main className="min-h-screen bg-[#f7f8fc] text-[#111827]">
@@ -137,6 +121,12 @@ export default function HomePage() {
                 className="text-sm font-medium text-white/75 transition hover:text-white"
               >
                 Companies
+              </a>
+              <a
+                href="/bookings"
+                className="text-sm font-medium text-white/75 transition hover:text-white"
+              >
+                Bookings
               </a>
               <a
                 href="#how-it-works"
@@ -305,7 +295,6 @@ export default function HomePage() {
             {/* Search box */}
             <div className="mt-10 max-w-4xl rounded-2xl border border-white/10 bg-white/[0.96] p-2 shadow-2xl backdrop-blur-xl">
               <div className="grid grid-cols-1 gap-2 md:grid-cols-[1.5fr_1fr_1fr_auto]">
-                {/* Location */}
                 <div className="flex items-center gap-3 rounded-xl px-4 py-3">
                   <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-amber-50">
                     <MapPin className="h-5 w-5 text-[#d99b20]" />
@@ -320,7 +309,7 @@ export default function HomePage() {
                   </div>
                 </div>
 
-                {/* Pick up */}
+                
                 <div className="flex items-center gap-3 rounded-xl border-t border-gray-100 px-4 py-3 md:border-l md:border-t-0">
                   <CalendarDays className="h-5 w-5 shrink-0 text-gray-400" />
                   <div>
@@ -333,7 +322,6 @@ export default function HomePage() {
                   </div>
                 </div>
 
-                {/* Return */}
                 <div className="flex items-center gap-3 rounded-xl border-t border-gray-100 px-4 py-3 md:border-l md:border-t-0">
                   <CalendarDays className="h-5 w-5 shrink-0 text-gray-400" />
                   <div>
@@ -380,11 +368,9 @@ export default function HomePage() {
           </div>
         </div>
 
-        {/* Bottom fade */}
-        <div className="absolute bottom-0 left-0 right-0 h-24 bg-gradient-to-t from-[#f7f8fc] to-transparent" />
+        <div className="pointer-events-none absolute bottom-0 left-0 right-0 h-24 bg-gradient-to-t from-[#f7f8fc] to-transparent" />
       </section>
 
-      {/* Popular cars */}
       <section id="cars" className="bg-[#f7f8fc] py-24">
         <div className="mx-auto max-w-7xl px-5 lg:px-8">
           <div className="flex flex-col justify-between gap-5 sm:flex-row sm:items-end">
@@ -410,69 +396,113 @@ export default function HomePage() {
             </Link>
           </div>
 
-          <div className="mt-10 grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-            {cars.map((car) => (
-              <div
-                key={car.name}
-                className="group overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-sm transition duration-300 hover:-translate-y-1 hover:shadow-xl"
-              >
-                {/* Image */}
-                <div className="relative h-60 overflow-hidden bg-gray-100">
-                  <img
-                    src={car.image}
-                    alt={car.name}
-                    className="h-full w-full object-cover transition duration-700 group-hover:scale-105"
-                  />
+          {isVehiclesLoading ? (
+            <div className="mt-10 grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+              {[0, 1, 2].map((item) => (
+                <div
+                  key={item}
+                  className="h-[420px] animate-pulse rounded-2xl border border-gray-100 bg-white"
+                />
+              ))}
+            </div>
+          ) : isVehiclesError ? (
+            <p className="mt-10 rounded-2xl border border-red-100 bg-white px-6 py-10 text-center text-sm text-red-700">
+              Cars could not be loaded right now.
+            </p>
+          ) : vehicles.length === 0 ? (
+            <p className="mt-10 rounded-2xl border border-gray-100 bg-white px-6 py-10 text-center text-sm text-gray-500">
+              No cars are listed yet.
+            </p>
+          ) : (
+            <div className="mt-10 grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+              {vehicles.map((car) => {
+                const image = resolveEntityImage(
+                  car,
+                  VEHICLE_FALLBACK_IMAGES,
+                  car._id,
+                );
+                const specs = [
+                  formatLabel(car.transmission),
+                  `${car.seats} Seats`,
+                  formatLabel(car.fuelType),
+                ];
 
-                  <div className="absolute left-4 top-4 rounded-full bg-white/90 px-3 py-1.5 text-xs font-semibold text-gray-700 backdrop-blur">
-                    {car.type}
-                  </div>
-
-                  <div className="absolute bottom-4 right-4 flex items-center gap-1 rounded-full bg-[#071225]/90 px-3 py-1.5 text-xs font-semibold text-white backdrop-blur">
-                    <Star className="h-3.5 w-3.5 fill-[#f5b83d] text-[#f5b83d]" />
-                    {car.rating}
-                  </div>
-                </div>
-
-                {/* Details */}
-                <div className="p-5">
-                  <div className="flex items-start justify-between gap-4">
-                    <div>
-                      <h3 className="text-lg font-bold text-[#071225]">
-                        {car.name}
-                      </h3>
-                      <p className="mt-1 text-xs text-gray-400">
-                        {car.company}
-                      </p>
-                    </div>
-
-                    <div className="text-right">
-                      <p className="text-lg font-bold text-[#071225]">
-                        {car.price}
-                      </p>
-                      <p className="text-[11px] text-gray-400">per day</p>
-                    </div>
-                  </div>
-
-                  <div className="mt-5 flex items-center gap-3 border-t border-gray-100 pt-4 text-xs text-gray-500">
-                    <span>{car.specs.split(" • ")[0]}</span>
-                    <span className="h-1 w-1 rounded-full bg-gray-300" />
-                    <span>{car.specs.split(" • ")[1]}</span>
-                    <span className="h-1 w-1 rounded-full bg-gray-300" />
-                    <span>{car.specs.split(" • ")[2]}</span>
-                  </div>
-
-                  <Link
-                    href="/cars"
-                    className="mt-5 flex items-center justify-center gap-2 rounded-xl bg-[#071225] py-3 text-sm font-bold text-white transition hover:bg-[#12223f]"
+                return (
+                  <div
+                    key={car._id}
+                    className="group overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-sm transition duration-300 hover:-translate-y-1 hover:shadow-xl"
                   >
-                    View details
-                    <ChevronRight className="h-4 w-4" />
-                  </Link>
-                </div>
-              </div>
-            ))}
-          </div>
+                    <div className="relative h-60 overflow-hidden bg-gray-100">
+                      <img
+                        src={image}
+                        alt={car.name}
+                        className="h-full w-full object-cover transition duration-700 group-hover:scale-105"
+                        onError={(event) =>
+                          applyImageFallback(
+                            event.currentTarget,
+                            VEHICLE_FALLBACK_IMAGES,
+                            car._id,
+                          )
+                        }
+                      />
+
+                      <div className="absolute left-4 top-4 rounded-full bg-white/90 px-3 py-1.5 text-xs font-semibold text-gray-700 backdrop-blur">
+                        {formatLabel(car.vehicleType)}
+                      </div>
+
+                      <div className="absolute bottom-4 right-4 flex items-center gap-1 rounded-full bg-[#071225]/90 px-3 py-1.5 text-xs font-semibold text-white backdrop-blur">
+                        <Star className="h-3.5 w-3.5 fill-[#f5b83d] text-[#f5b83d]" />
+                        {car.ratingAverage
+                          ? car.ratingAverage.toFixed(1)
+                          : "New"}
+                      </div>
+                    </div>
+
+                    <div className="p-5">
+                      <div className="flex items-start justify-between gap-4">
+                        <div>
+                          <h3 className="text-lg font-bold text-[#071225]">
+                            {car.name}
+                          </h3>
+                          <p className="mt-1 text-xs text-gray-400">
+                            {companyNameById.get(car.companyId) ||
+                              car.location?.city ||
+                              "Rental partner"}
+                          </p>
+                        </div>
+
+                        <div className="text-right">
+                          <p className="text-lg font-bold text-[#071225]">
+                            AED {car.pricePerDay}
+                          </p>
+                          <p className="text-[11px] text-gray-400">per day</p>
+                        </div>
+                      </div>
+
+                      <div className="mt-5 flex items-center gap-3 border-t border-gray-100 pt-4 text-xs text-gray-500">
+                        {specs.map((spec, index) => (
+                          <span key={spec} className="flex items-center gap-3">
+                            {index > 0 && (
+                              <span className="h-1 w-1 rounded-full bg-gray-300" />
+                            )}
+                            {spec}
+                          </span>
+                        ))}
+                      </div>
+
+                      <Link
+                        href={`/cars/${car._id}`}
+                        className="mt-5 flex items-center justify-center gap-2 rounded-xl bg-[#071225] py-3 text-sm font-bold text-white transition hover:bg-[#12223f]"
+                      >
+                        View details
+                        <ChevronRight className="h-4 w-4" />
+                      </Link>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
         </div>
       </section>
 
@@ -546,41 +576,84 @@ export default function HomePage() {
             </Link>
           </div>
 
-          <div className="mt-10 grid gap-5 md:grid-cols-3">
-            {companies.map((company) => (
-              <Link
-                href="/companies"
-                key={company.name}
-                className="group rounded-2xl border border-gray-100 bg-white p-6 shadow-sm transition hover:-translate-y-1 hover:shadow-lg"
-              >
-                <div className="flex items-center justify-between">
-                  <div
-                    className={`flex h-14 w-14 items-center justify-center rounded-2xl text-sm font-bold ${company.color}`}
+          {isCompaniesLoading ? (
+            <div className="mt-10 grid gap-5 md:grid-cols-3">
+              {[0, 1, 2].map((item) => (
+                <div
+                  key={item}
+                  className="h-72 animate-pulse rounded-2xl border border-gray-100 bg-white"
+                />
+              ))}
+            </div>
+          ) : isCompaniesError ? (
+            <p className="mt-10 rounded-2xl border border-red-100 bg-white px-6 py-10 text-center text-sm text-red-700">
+              Companies could not be loaded right now.
+            </p>
+          ) : companies.length === 0 ? (
+            <p className="mt-10 rounded-2xl border border-gray-100 bg-white px-6 py-10 text-center text-sm text-gray-500">
+              No companies are listed yet.
+            </p>
+          ) : (
+            <div className="mt-10 grid gap-5 md:grid-cols-3">
+              {companies.map((company) => {
+                const image = resolveEntityImage(
+                  company,
+                  COMPANY_FALLBACK_IMAGES,
+                  company._id,
+                );
+                const location = [company.address?.city, company.address?.country]
+                  .filter(Boolean)
+                  .join(", ");
+
+                return (
+                  <Link
+                    href={`/companies/${company._id}`}
+                    key={company._id}
+                    className="group overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-sm transition hover:-translate-y-1 hover:shadow-lg"
                   >
-                    {company.initials}
-                  </div>
+                    <div className="relative h-40 overflow-hidden bg-gray-100">
+                      <img
+                        src={image}
+                        alt={company.name}
+                        className="h-full w-full object-cover transition duration-700 group-hover:scale-105"
+                        onError={(event) =>
+                          applyImageFallback(
+                            event.currentTarget,
+                            COMPANY_FALLBACK_IMAGES,
+                            company._id,
+                          )
+                        }
+                      />
+                    </div>
 
-                  <div className="flex items-center gap-1 text-sm font-semibold text-gray-700">
-                    <Star className="h-4 w-4 fill-[#f5b83d] text-[#f5b83d]" />
-                    {company.rating}
-                  </div>
-                </div>
+                    <div className="p-6">
+                      <div className="flex items-center justify-between gap-3">
+                        <h3 className="text-lg font-bold text-[#071225]">
+                          {company.name}
+                        </h3>
 
-                <h3 className="mt-5 text-lg font-bold text-[#071225]">
-                  {company.name}
-                </h3>
+                        <div className="flex shrink-0 items-center gap-1 text-sm font-semibold text-gray-700">
+                          <Star className="h-4 w-4 fill-[#f5b83d] text-[#f5b83d]" />
+                          {company.ratingAverage
+                            ? company.ratingAverage.toFixed(1)
+                            : "New"}
+                        </div>
+                      </div>
 
-                <p className="mt-1 text-sm text-gray-400">
-                  {company.cars}
-                </p>
+                      <p className="mt-1 text-sm text-gray-400">
+                        {location || "Rental partner"}
+                      </p>
 
-                <div className="mt-5 flex items-center gap-2 text-sm font-bold text-[#071225]">
-                  View company
-                  <ArrowRight className="h-4 w-4 transition group-hover:translate-x-1" />
-                </div>
-              </Link>
-            ))}
-          </div>
+                      <div className="mt-5 flex items-center gap-2 text-sm font-bold text-[#071225]">
+                        View company
+                        <ArrowRight className="h-4 w-4 transition group-hover:translate-x-1" />
+                      </div>
+                    </div>
+                  </Link>
+                );
+              })}
+            </div>
+          )}
         </div>
       </section>
 

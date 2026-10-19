@@ -1,6 +1,6 @@
 "use client";
 
-import { use } from "react";
+import { use, useState } from "react";
 import Link from "next/link";
 import {
   ArrowLeft,
@@ -16,6 +16,7 @@ import {
   Star,
 } from "lucide-react";
 import { Navbar } from "@/src/components/common/Navbar";
+import { ReviewList } from "@/src/components/reviews/ReviewList";
 import { useCompany } from "@/src/hooks/useCompanies";
 import { useVehicles } from "@/src/hooks/useVehicles";
 
@@ -29,6 +30,22 @@ export default function CompanyDetailPage({
 }) {
   const resolvedParams = use(params);
   const companyId = resolvedParams.id;
+  const [showReviews, setShowReviews] = useState(false);
+
+  function toggleReviews() {
+    setShowReviews((current) => {
+      const next = !current;
+      if (next) {
+        requestAnimationFrame(() => {
+          document.getElementById("reviews")?.scrollIntoView({
+            behavior: "smooth",
+            block: "start",
+          });
+        });
+      }
+      return next;
+    });
+  }
 
   const { data, isLoading, error } = useCompany(companyId);
   const company = data?.data;
@@ -142,9 +159,16 @@ export default function CompanyDetailPage({
                   <div className="flex items-center gap-1">
                     <Star className="h-4 w-4 fill-[#f5b544] text-[#f5b544]" />
                     <span className="font-bold text-gray-900">
-                      {company.ratingAverage || "4.9"}
+                      {(company.ratingAverage ?? 0).toFixed(1)}
                     </span>
-                    <span>({company.ratingCount || 1} reviews)</span>
+                    <span>({company.ratingCount ?? 0} reviews)</span>
+                    <button
+                      type="button"
+                      onClick={toggleReviews}
+                      className="font-semibold text-[#d99a20] hover:text-[#b88212]"
+                    >
+                      {showReviews ? "Hide reviews" : "View reviews"}
+                    </button>
                   </div>
                 </div>
               </div>
@@ -298,6 +322,50 @@ export default function CompanyDetailPage({
             </div>
           )}
         </div>
+
+        <section id="reviews" className="mt-12">
+          {showReviews ? (
+            <div>
+              <div className="flex justify-end">
+                <button
+                  type="button"
+                  onClick={toggleReviews}
+                  className="text-sm font-semibold text-gray-500 hover:text-gray-900"
+                >
+                  Hide reviews
+                </button>
+              </div>
+              <ReviewList
+                targetType="company"
+                targetId={company._id}
+                title={`Reviews of ${company.name}`}
+                emptyText="Customers can review this company after a completed rental."
+                anchorId="company-review-list"
+              />
+            </div>
+          ) : (
+            <div className="flex flex-col gap-4 rounded-3xl border border-gray-200/80 bg-white p-6 shadow-sm sm:flex-row sm:items-center sm:justify-between sm:p-8">
+              <div>
+                <h2 className="text-2xl font-bold text-gray-900">
+                  Reviews of {company.name}
+                </h2>
+                <p className="mt-1 text-sm text-gray-500">
+                  {(company.ratingAverage ?? 0).toFixed(1)} average from{" "}
+                  {company.ratingCount ?? 0}{" "}
+                  {(company.ratingCount ?? 0) === 1 ? "review" : "reviews"}
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={toggleReviews}
+                className="inline-flex items-center justify-center gap-2 rounded-xl bg-[#0b1220] px-5 py-3 text-sm font-semibold text-white shadow-sm hover:bg-[#1a2942]"
+              >
+                <Star className="h-4 w-4 fill-[#f5b544] text-[#f5b544]" />
+                View reviews
+              </button>
+            </div>
+          )}
+        </section>
       </main>
     </div>
   );
